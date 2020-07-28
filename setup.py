@@ -27,11 +27,11 @@ setuptools.setup(
     packages=setuptools.find_packages(),
 
     install_requires=requirements,
-    entry_points={
-        'console_scripts': [
-            'gs = globalsign.__main__:main',
-        ],
-    },
+    # entry_points={
+    #     'console_scripts': [
+    #         'gs = globalsign.__main__:main',
+    #     ],
+    # },
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Programming Language :: Python',
