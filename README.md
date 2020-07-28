@@ -46,3 +46,5 @@ Type "help", "copyright", "credits" or "license" for more information.
 }
 >>>
 ```
+
+![Python package](https://github.com/pirish/python-globalsign/workflows/Python%20package/badge.svg)

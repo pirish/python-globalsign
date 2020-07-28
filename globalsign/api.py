@@ -89,55 +89,47 @@ class GlobalsignMSSL(object):
         self.mssl_service = mssl_client.service
 
 
-    def show_history():
+    def show_history(self):
         for hist in [self.history.last_sent, self.history.last_received]:
             print(etree.tostring(hist["envelope"], encoding="unicode",
                   pretty_print=True))
 
 #MSSL function
-    def pv_order(self, validity_months=12, sub_id='', **kwargs):
-        try:
-            prof_id
-        except NameError:
-            site = get_site(csr)
-            domain = get_base_domain(site)
-            domain_info = self.get_domains(domain=domain)
-            prof_id = domain_info['DomainDetails']['DomainDetail'][0]['MSSLProfileID']
-            dom_id = domain_info['DomainDetails']['DomainDetail'][0]['DomainID']
+    def pv_order(self, validity_months=12, csr="", prof_id="", dom_id="", sub_id="", **kwargs):
 
         pvorder_request = {
             'OrderRequestHeader': self.auth_token,
             'OrderRequestParameter': {
                 'ProductCode': 'PV_SHA2',
-                'BaseOption': '',
+                'BaseOption': "",
                 'OrderKind': 'New',
-                'Licenses': '',
-                'Options': '',
+                'Licenses': "",
+                'Options': "",
                 'ValidityPeriod': {
                     'Months': validity_months,
-                    'NotBefore': '',
-                    'NotAfter': ''
+                    'NotBefore': "",
+                    'NotAfter': ""
                 },
                 'CSR': csr,
-                'RenewalTargetOrderID': '',
-                'TargetCERT': '',
-                'SpecialInstructions': '',
-                'Coupon': '',
-                'Campaign': ''
+                'RenewalTargetOrderID': "",
+                'TargetCERT': "",
+                'SpecialInstructions': "",
+                'Coupon': "",
+                'Campaign': ""
                 },
             'MSSLProfileID': prof_id,
             'MSSLDomainID': dom_id,
             'SubID': sub_id,
-            'PVSealInfo': '',
+            'PVSealInfo': "",
             'ContactInfo': self.contact,
-            'SANEntries': '',
-            'Extensions': '',
-            'CertificateTemplate': ''
+            'SANEntries': "",
+            'Extensions': "",
+            'CertificateTemplate': ""
         }
         try:
             resp = self.mssl_service.PVOrder(pvorder_request)
         except Fault:
-            show_history()
+            self.show_history()
         if resp['OrderResponseHeader']['SuccessCode'] != 0:
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
@@ -154,7 +146,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.ModifyMSSLOrder(modify_mssl_order_request)
         except Fault:
-            show_history()
+            self.show_history()
         if resp['OrderResponseHeader']['SuccessCode'] != 0:
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
@@ -175,14 +167,14 @@ class GlobalsignMSSL(object):
             'OrderRequestHeader': self.auth_token,
             'OrderID': order_id,
             'TargetOrderID': target_id,
-            'ApproverEmail': '',
+            'ApproverEmail': "",
             'SANEntries': san_entries,
-            'PIN': ''
+            'PIN': ""
         }
         try:
             resp = self.mssl_service.ChangeSubjectAltName(change_subject_alt_name_request)
         except Fault:
-            show_history()
+            self.show_history()
         if resp['OrderResponseHeader']['SuccessCode'] != 0:
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
@@ -216,12 +208,12 @@ class GlobalsignMSSL(object):
         try:
             domain_id
         except NameError:
-            domain_id=''
+            domain_id=""
 
         try:
             approver_email
         except NameError:
-            approver_email=''
+            approver_email=""
 
         if vetting_type == "EMAIL" and approver_email == "":
             raise RuntimeError('approver email not set')
@@ -246,7 +238,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.AddDomainToProfile(add_domain_to_profile_request)
         except Fault:
-            show_history()
+            self.show_history()
         if resp['OrderResponseHeader']['SuccessCode'] != 0:
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
@@ -266,16 +258,16 @@ class GlobalsignMSSL(object):
         """
 
 ## VerifyMsslDomain
-    def verify_mssl_domain(self,  **kwargs):
+    def verify_mssl_domain(self, domain_id, **kwargs):
         try:
             vetting_type
         except NameError:
-            vetting_type='DNS'
+            vetting_type="DNS"
 
         try:
             tag_location
         except NameError:
-            tag_location=''
+            tag_location=""
 
         verify_mssl_domain_request = {
             'OrderRequestHeader': self.auth_token,
@@ -286,7 +278,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.VerifyMsslDomain(verify_mssl_domain_request)
         except Fault:
-            show_history()
+            self.show_history()
         if resp['OrderResponseHeader']['SuccessCode'] != 0:
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
@@ -314,7 +306,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.ModifyMSSLDomain(modify_mssl_domain_request)
         except Fault:
-            show_history()
+            self.show_history()
         if resp['OrderResponseHeader']['SuccessCode'] != 0:
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
@@ -335,29 +327,29 @@ class GlobalsignMSSL(object):
 ## TODO: UpdateMSSLProfile
 
 ## RenewalDomain
-    def renewal_domain(self,  **kwargs):
+    def renewal_domain(self, prof_id, **kwargs):
 
         try:
             vetting_type
         except NameError:
-            vetting_type=DNS
+            vetting_type="DNS"
 
         try:
             vetting_level
         except NameError:
-            vetting_level=OV
+            vetting_level="OV"
 
         try:
             domain_id
         except NameError:
-            domain_id=''
+            domain_id=""
 
         try:
             approver_email
         except NameError:
-            approver_email=''
+            approver_email=""
 
-        if vetting_type == 'EMAIL' and approver_email == '':
+        if vetting_type == 'EMAIL' and approver_email == "":
             raise RuntimeError('approver email not set')
 
         renewal_domain_request = {
@@ -372,7 +364,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.RenewalDomain(renewal_domain_request)
         except Fault:
-            show_history()
+            self.show_history()
         if resp['OrderResponseHeader']['SuccessCode'] != 0:
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
@@ -398,12 +390,12 @@ class GlobalsignMSSL(object):
             'OrderParameter': order_parameter,
             'TargetOrderID': target_order_id,
             'HashAlgorithm': 'SHA256',
-            'Extensions': ''
+            'Extensions': ""
         }
         try:
             resp = self.mssl_service.Reissue(reissue_request)
         except Fault:
-            show_history()
+            self.show_history()
         if resp['OrderResponseHeader']['SuccessCode'] != 0:
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
@@ -427,12 +419,12 @@ class GlobalsignMSSL(object):
         toggle_renewal_notice_request = {
             'OrderRequestHeader': self.auth_token,
             'OrderID': order_id,
-            'RenewalNotice': ''
+            'RenewalNotice': ""
         }
         try:
             resp = self.mssl_service.ToggleRenewalNotice(toggle_renewal_notice_request)
         except Fault:
-            show_history()
+            self.show_history()
         if resp['OrderResponseHeader']['SuccessCode'] != 0:
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
@@ -456,32 +448,32 @@ class GlobalsignMSSL(object):
         try:
             prof_id
         except NameError:
-            prof_id = ''
+            prof_id = ""
 
         try:
             domain
         except NameError:
-            domain = ''
+            domain = ""
 
         try:
             domain_status
         except NameError:
-            domain_status = ''
+            domain_status = ""
 
         try:
             vetting_level
         except NameError:
-            vetting_level=''
+            vetting_level=""
 
         try:
             last_update_date_range
         except NameError:
-            last_update_date_range = ''
+            last_update_date_range = ""
 
         try:
             expiration_date_range
         except NameError:
-            expiration_date_range = ''
+            expiration_date_range = ""
 
         get_domains_request = {
             'QueryRequestHeader': self.auth_token,
@@ -496,7 +488,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.GetDomains(get_domains_request)
         except Fault:
-            show_history()
+            self.show_history()
 
         if resp['QueryResponseHeader']['SuccessCode'] != 0:
             if debug:
@@ -537,7 +529,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.GetOrderByOrderID(get_order_by_order_id_request)
         except Fault:
-            show_history()
+            self.show_history()
 
         if resp['QueryResponseHeader']['SuccessCode'] != 0:
             if debug:
@@ -563,7 +555,7 @@ class GlobalsignMSSL(object):
         try:
             order_query_option
         except NameError:
-            order_query_option = ''
+            order_query_option = ""
 
         get_order_by_date_range_request = {
             'QueryRequestHeader': self.auth_token,
@@ -575,7 +567,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.GetOrderByDateRange(get_order_by_date_range_request)
         except Fault:
-            show_history()
+            self.show_history()
 
         if resp['QueryResponseHeader']['SuccessCode'] != 0:
             if debug:
@@ -602,7 +594,7 @@ class GlobalsignMSSL(object):
         try:
             order_query_option
         except NameError:
-            order_query_option = ''
+            order_query_option = ""
 
         get_modified_orders_request = {
             'QueryRequestHeader': self.auth_token,
@@ -614,7 +606,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.GetModifiedOrders(get_modified_orders_request)
         except Fault:
-            show_history()
+            self.show_history()
 
         if resp['QueryResponseHeader']['SuccessCode'] != 0:
             if debug:
@@ -640,22 +632,22 @@ class GlobalsignMSSL(object):
         try:
             fqdn
         except NameError:
-            fqdn = ''
+            fqdn = ""
 
         try:
             order_kind
         except NameError:
-            order_kind = ''
+            order_kind = ""
 
         try:
             order_status
         except NameError:
-            order_status = ''
+            order_status = ""
 
         try:
             sub_id
         except NameError:
-            sub_id = ''
+            sub_id = ""
 
         get_order_by_expiration_request = {
             'QueryRequestHeader': self.auth_token,
@@ -670,7 +662,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.GetOrderByExpirationDate(get_order_by_expiration_request)
         except Fault:
-            show_history()
+            self.show_history()
 
         if resp['QueryResponseHeader']['SuccessCode'] != 0:
             if debug:
@@ -695,32 +687,32 @@ class GlobalsignMSSL(object):
         try:
             from_date
         except NameError:
-            from_date = ''
+            from_date = ""
 
         try:
             to_date
         except NameError:
-            to_date = ''
+            to_date = ""
 
         try:
             fqdn
         except NameError:
-            fqdn = ''
+            fqdn = ""
 
         try:
             product_code
         except NameError:
-            product_code = ''
+            product_code = ""
 
         try:
             order_status
         except NameError:
-            order_status = ''
+            order_status = ""
 
         try:
             sub_id
         except NameError:
-            sub_id = ''
+            sub_id = ""
 
         get_certificate_orders_request = {
             'QueryRequestHeader': self.auth_token,
@@ -735,7 +727,7 @@ class GlobalsignMSSL(object):
         try:
             resp = self.mssl_service.GetCertificateOrders(get_certificate_orders_request)
         except Fault:
-            show_history()
+            self.show_history()
 
         if resp['QueryResponseHeader']['SuccessCode'] != 0:
             if debug:
