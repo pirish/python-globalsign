@@ -6,10 +6,11 @@ from zeep.plugins import HistoryPlugin
 from lxml import etree
 import configparser
 import os
-#import pprint
+# import pprint
 
 
 debug = False
+
 
 class GlobalsignMSSL(object):
     def __init__(self, **kwargs):
@@ -40,7 +41,6 @@ class GlobalsignMSSL(object):
             else:
                 raise RuntimeError("No Contact Info")
 
-
         try:
             user
         except NameError:
@@ -48,7 +48,7 @@ class GlobalsignMSSL(object):
                 user = config[env]['user']
                 pw = config[env]['pass']
             elif ((os.environ.get('GS_USER') is not None) and
-                     (os.environ.get('GS_PASS') is not None)):
+                  (os.environ.get('GS_PASS') is not None)):
                 user = os.environ['GS_USER']
                 pw = os.environ['GS_PASS']
             else:
@@ -84,13 +84,11 @@ class GlobalsignMSSL(object):
         mssl_client = Client(wsdl=mssl_wsdl, transport=transport, plugins=[self.history])
         self.mssl_service = mssl_client.service
 
-
     def show_history(self):
         for hist in [self.history.last_sent, self.history.last_received]:
             print(etree.tostring(hist["envelope"], encoding="unicode",
                   pretty_print=True))
 
-#MSSL function
     def pv_order(self, validity_months=12, csr="", prof_id="", dom_id="", sub_id="", **kwargs):
 
         pvorder_request = {
@@ -130,10 +128,18 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
-                           ['ErrorField'])
+                               ['ErrorField'])
         return resp
-## ModifyMSSLOrder
+
     def modify_mssl_order(self, order_id, modifying_operation, **kwargs):
+        """
+        <Response>
+        <OrderResponseHeader>
+            <SuccessCode>
+            <Errors>
+            <Timestamp>
+        </Response>
+        """
         modify_mssl_order_request = {
             'OrderRequestHeader': self.auth_token,
             'OrderID': order_id,
@@ -147,8 +153,10 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
-                           ['ErrorField'])
+                               ['ErrorField'])
         return resp
+
+    def change_subject_alt_name(self, order_id, target_id, san_entries, **kwargs):
         """
         <Response>
         <OrderResponseHeader>
@@ -157,8 +165,6 @@ class GlobalsignMSSL(object):
             <Timestamp>
         </Response>
         """
-## ChangeSubjectAltName
-    def change_subject_alt_name(self, order_id, target_id, san_entries, **kwargs):
         change_subject_alt_name_request = {
             'OrderRequestHeader': self.auth_token,
             'OrderID': order_id,
@@ -175,21 +181,21 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
-                           ['ErrorField'])
+                               ['ErrorField'])
         return resp
+
+    def add_domain_to_profile(self, domain, prof_id, **kwargs):
         """
         <Response>
         <OrderResponseHeader>
             <SuccessCode>
             <Errors>
             <Timestamp>
+        <MSSLDomainID>
+        <MetaTag>
+        <DnsTXT>
         </Response>
         """
-
-
-## AddDomainToProfile
-    def add_domain_to_profile(self, domain, prof_id, **kwargs):
-
         try:
             vetting_type
         except NameError:
@@ -204,12 +210,12 @@ class GlobalsignMSSL(object):
         try:
             domain_id
         except NameError:
-            domain_id=""
+            domain_id = ""
 
         try:
             approver_email
         except NameError:
-            approver_email=""
+            approver_email = ""
 
         if vetting_type == "EMAIL" and approver_email == "":
             raise RuntimeError('approver email not set')
@@ -218,10 +224,10 @@ class GlobalsignMSSL(object):
             'OrderRequestHeader': self.auth_token,
             'MSSLProfileID': prof_id,
             'DomainName': domain,
-            'VettingLevel': vetting_level, #EV, OV, or PV_CLOUD
-            'VettingType': vetting_type, #HTTP, DNS, EMAIL
-            'DomainID': domain_id,  #Only when VettingType=Email
-            'ApproverEmail': approver_email, #Required when VettingType=Email
+            'VettingLevel': vetting_level,  # EV, OV, or PV_CLOUD
+            'VettingType': vetting_type,  # HTTP, DNS, EMAIL
+            'DomainID': domain_id,  # Only when VettingType=Email
+            'ApproverEmail': approver_email,  # Required when VettingType=Email
             'ContactInfo': {
                 'FirstName': self.contact['FirstName'],
                 'FirstNameNative': self.contact['FirstName'],
@@ -239,49 +245,10 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
-                           ['ErrorField'])
+                               ['ErrorField'])
         return resp
-        """
-        <Response>
-        <OrderResponseHeader>
-            <SuccessCode>
-            <Errors>
-            <Timestamp>
-        <MSSLDomainID>
-        <MetaTag>
-        <DnsTXT>
-        </Response>
-        """
 
-## VerifyMsslDomain
     def verify_mssl_domain(self, domain_id, **kwargs):
-        try:
-            vetting_type
-        except NameError:
-            vetting_type="DNS"
-
-        try:
-            tag_location
-        except NameError:
-            tag_location=""
-
-        verify_mssl_domain_request = {
-            'OrderRequestHeader': self.auth_token,
-            'DomainID': domain_id,
-            'TagLocation': tag_location, #See Section 8.11
-            'VettingType': vetting_type, #DNS, EMAIL, HTTP
-        }
-        try:
-            resp = self.mssl_service.VerifyMsslDomain(verify_mssl_domain_request)
-        except Fault:
-            self.show_history()
-        if resp['OrderResponseHeader']['SuccessCode'] != 0:
-            if debug:
-                print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
-            raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
-                           ['ErrorField'])
-        return resp
-
         """
         <Response>
         <OrderResponseHeader>
@@ -291,9 +258,35 @@ class GlobalsignMSSL(object):
         <DomainID> The DomainID for the added domain
         </Response>
         """
+        try:
+            vetting_type
+        except NameError:
+            vetting_type = "DNS"
 
-## ModifyMSSLDomain
+        try:
+            tag_location
+        except NameError:
+            tag_location = ""
+
+        verify_mssl_domain_request = {
+            'OrderRequestHeader': self.auth_token,
+            'DomainID': domain_id,
+            'TagLocation': tag_location,  # See Section 8.11
+            'VettingType': vetting_type,  # DNS, EMAIL, HTTP
+        }
+        try:
+            resp = self.mssl_service.VerifyMsslDomain(verify_mssl_domain_request)
+        except Fault:
+            self.show_history()
+        if resp['OrderResponseHeader']['SuccessCode'] != 0:
+            if debug:
+                print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
+            raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
+                               ['ErrorField'])
+        return resp
+
     def modify_mssl_domain(self, domain_id, domain_operation):
+
         modify_mssl_domain_request = {
             'OrderRequestHeader': self.auth_token,
             'MSSLDomainID': domain_id,
@@ -307,7 +300,7 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
-                           ['ErrorField'])
+                               ['ErrorField'])
         return resp
 
         """
@@ -318,55 +311,11 @@ class GlobalsignMSSL(object):
             <Timestamp>
         </Response>
         """
-## TODO: GetMSSLProfiles
-## TODO: AddMSSLProfile
-## TODO: UpdateMSSLProfile
+# TODO: GetMSSLProfiles
+# TODO: AddMSSLProfile
+# TODO: UpdateMSSLProfile
 
-## RenewalDomain
     def renewal_domain(self, prof_id, **kwargs):
-
-        try:
-            vetting_type
-        except NameError:
-            vetting_type="DNS"
-
-        try:
-            vetting_level
-        except NameError:
-            vetting_level="OV"
-
-        try:
-            domain_id
-        except NameError:
-            domain_id=""
-
-        try:
-            approver_email
-        except NameError:
-            approver_email=""
-
-        if vetting_type == 'EMAIL' and approver_email == "":
-            raise RuntimeError('approver email not set')
-
-        renewal_domain_request = {
-            'OrderRequestHeader': self.auth_token,
-            'MSSLProfileID': prof_id, #If this is unknown, use the GetMSSLDomain command to retrieve the MSSLProfileID
-            'VettingLevel': vetting_level, # Options are EV or OV
-            'VettingType': vetting_type, #Options are EMAIL, HTTP or DNS.
-            'ApproverEmail': approver_email, #If EMAIL is elected for VettingType, enter approval email into this field.
-            'DomainID': domain_id, #The domain that needs to be renewed.
-            'ContactInfo': self.contact
-        }
-        try:
-            resp = self.mssl_service.RenewalDomain(renewal_domain_request)
-        except Fault:
-            self.show_history()
-        if resp['OrderResponseHeader']['SuccessCode'] != 0:
-            if debug:
-                print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
-            raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
-                           ['ErrorField'])
-        return resp
         """
         <Response>
         <OrderResponseHeader>
@@ -378,9 +327,60 @@ class GlobalsignMSSL(object):
         <DnsTXT>
         </Response>
         """
+        try:
+            vetting_type
+        except NameError:
+            vetting_type = "DNS"
 
-## Reissue
+        try:
+            vetting_level
+        except NameError:
+            vetting_level = "OV"
+
+        try:
+            domain_id
+        except NameError:
+            domain_id = ""
+
+        try:
+            approver_email
+        except NameError:
+            approver_email = ""
+
+        if vetting_type == 'EMAIL' and approver_email == "":
+            raise RuntimeError('approver email not set')
+
+        renewal_domain_request = {
+            'OrderRequestHeader': self.auth_token,
+            'MSSLProfileID': prof_id,  # If this is unknown, use the GetMSSLDomain command to retrieve the MSSLProfileID
+            'VettingLevel': vetting_level,  # Options are EV or OV
+            'VettingType': vetting_type,  # Options are EMAIL, HTTP or DNS.
+            'ApproverEmail': approver_email,  # If EMAIL is elected for VettingType, enter approval email into this field.
+            'DomainID': domain_id,  # The domain that needs to be renewed.
+            'ContactInfo': self.contact
+        }
+        try:
+            resp = self.mssl_service.RenewalDomain(renewal_domain_request)
+        except Fault:
+            self.show_history()
+        if resp['OrderResponseHeader']['SuccessCode'] != 0:
+            if debug:
+                print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
+            raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
+                               ['ErrorField'])
+        return resp
+
     def reissue(self, target_order_id, order_parameter, **kwargs):
+        """
+        <Response>
+        <OrderResponseHeader>
+            <SuccessCode>
+            <Errors>
+            <Timestamp>
+        <OrderID>
+        <TargetOrderID>
+        </Response>
+        """
         reissue_request = {
             'OrderRequestHeader': self.auth_token,
             'OrderParameter': order_parameter,
@@ -396,9 +396,10 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
-                           ['ErrorField'])
+                               ['ErrorField'])
         return resp
 
+    def toggle_renewal_notice(self, order_id, **kwargs):
         """
         <Response>
         <OrderResponseHeader>
@@ -406,12 +407,8 @@ class GlobalsignMSSL(object):
             <Errors>
             <Timestamp>
         <OrderID>
-        <TargetOrderID>
         </Response>
         """
-
-## ToggleRenewalNotice
-    def toggle_renewal_notice(self, order_id, **kwargs):
         toggle_renewal_notice_request = {
             'OrderRequestHeader': self.auth_token,
             'OrderID': order_id,
@@ -425,22 +422,31 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['OrderResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['OrderResponseHeader']['Errors']['Error'][0]
-                           ['ErrorField'])
+                               ['ErrorField'])
         return resp
 
+# Query functions
+    def get_domains(self, **kwargs):
         """
         <Response>
-        <OrderResponseHeader>
+        <QueryResponseHeader>
             <SuccessCode>
             <Errors>
             <Timestamp>
-        <OrderID>
+        <DomainDetails>
+            <MSSLProfileID>
+            <DomainID>
+            <OrderDate>
+            <DomainName>
+            <DomainStatus>
+            <VettingLevel>
+            <VettingType>
+            <DomainValidationCode>
+            <ValidationDate>
+            <ExpirationDate>
+            <ContactInfo>
         </Response>
         """
-
-#Query func
-## GetDomains
-    def get_domains(self, **kwargs):
         try:
             prof_id
         except NameError:
@@ -459,7 +465,7 @@ class GlobalsignMSSL(object):
         try:
             vetting_level
         except NameError:
-            vetting_level=""
+            vetting_level = ""
 
         try:
             last_update_date_range
@@ -490,32 +496,21 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['QueryResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['QueryResponseHeader']['Errors']['Error'][0]
-                           ['ErrorMessage'])
+                               ['ErrorMessage'])
 
         return resp
 
+    def get_order_by_order_id(self, order_id, order_query_option):
         """
         <Response>
-        <QueryResponseHeader>
+        <OrderResponseHeader>
             <SuccessCode>
             <Errors>
             <Timestamp>
-        <DomainDetails>
-            <MSSLProfileID>
-            <DomainID>
-            <OrderDate>
-            <DomainName>
-            <DomainStatus>
-            <VettingLevel>
-            <VettingType>
-            <DomainValidationCode>
-            <ValidationDate>
-            <ExpirationDate>
-            <ContactInfo>
+        <OrderID>
+        <OrderDetail>
         </Response>
         """
-## GetOrderByOrderID
-    def get_order_by_order_id(self, order_id, order_query_option):
         get_order_by_order_id_request = {
             'QueryRequestHeader': self.auth_token,
             'OrderID': order_id,
@@ -531,23 +526,22 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['QueryResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['QueryResponseHeader']['Errors']['Error'][0]
-                           ['ErrorMessage'])
+                               ['ErrorMessage'])
 
         return resp
 
+    def get_order_by_date_range(self, from_date, to_date, **kwargs):
         """
         <Response>
-        <OrderResponseHeader>
+        <QueryResponseHeader>
             <SuccessCode>
             <Errors>
             <Timestamp>
-        <OrderID>
-        <OrderDetail>
+        <FromDate>
+        <ToDate>
+        <OrderDetails>
         </Response>
         """
-
-## GetOrderByDateRange
-    def get_order_by_date_range(self, from_date, to_date, **kwargs):
         try:
             order_query_option
         except NameError:
@@ -569,10 +563,11 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['QueryResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['QueryResponseHeader']['Errors']['Error'][0]
-                           ['ErrorMessage'])
+                               ['ErrorMessage'])
 
         return resp
 
+    def get_modified_orders(self, from_date, to_date, **kwargs):
         """
         <Response>
         <QueryResponseHeader>
@@ -584,9 +579,6 @@ class GlobalsignMSSL(object):
         <OrderDetails>
         </Response>
         """
-
-## GetModifiedOrders
-    def get_modified_orders(self, from_date, to_date, **kwargs):
         try:
             order_query_option
         except NameError:
@@ -608,23 +600,20 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['QueryResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['QueryResponseHeader']['Errors']['Error'][0]
-                           ['ErrorMessage'])
+                               ['ErrorMessage'])
 
         return resp
+
+    def get_order_by_expiration_date(self, from_date, to_date, **kwargs):
         """
         <Response>
         <QueryResponseHeader>
             <SuccessCode>
             <Errors>
             <Timestamp>
-        <FromDate>
-        <ToDate>
-        <OrderDetails>
+        <SearchOrderDetails>
         </Response>
         """
-
-## GetOrderByExpirationDate
-    def get_order_by_expiration_date(self, from_date, to_date, **kwargs):
         try:
             fqdn
         except NameError:
@@ -664,22 +653,19 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['QueryResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['QueryResponseHeader']['Errors']['Error'][0]
-                           ['ErrorMessage'])
-
+                               ['ErrorMessage'])
         return resp
 
+    def get_certificate_orders(self, **kwargs):
         """
         <Response>
         <QueryResponseHeader>
             <SuccessCode>
             <Errors>
             <Timestamp>
-        <SearchOrderDetails>
+            <SearchOrderDetails>
         </Response>
         """
-
-## GetCertificateOrders
-    def get_certificate_orders(self, **kwargs):
         try:
             from_date
         except NameError:
@@ -729,16 +715,6 @@ class GlobalsignMSSL(object):
             if debug:
                 print(resp['QueryResponseHeader']['Errors']['Error'][0]['ErrorMessage'])
             raise RuntimeError(resp['QueryResponseHeader']['Errors']['Error'][0]
-                           ['ErrorMessage'])
+                               ['ErrorMessage'])
 
         return resp
-
-        """
-        <Response>
-        <QueryResponseHeader>
-            <SuccessCode>
-            <Errors>
-            <Timestamp>
-            <SearchOrderDetails>
-        </Response>
-        """
