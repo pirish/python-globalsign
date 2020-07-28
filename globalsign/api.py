@@ -6,14 +6,10 @@ from zeep.plugins import HistoryPlugin
 from lxml import etree
 import configparser
 import os
-import pprint
+#import pprint
 
 
-debug = True
-pp = pprint.PrettyPrinter(indent=4)
-env = os.environ.get('GS_ENV', 'TEST')
-user_config_dir = os.path.expanduser("~") + "/.config/"
-user_config = user_config_dir + "gs.ini"
+debug = False
 
 class GlobalsignMSSL(object):
     def __init__(self, **kwargs):
