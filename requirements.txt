@@ -8,7 +8,7 @@ cryptography==3.2
 defusedxml==0.6.0
 idna==2.10
 isodate==0.6.0
-lxml==4.5.2
+lxml==4.9.1
 pycparser==2.20
 pyOpenSSL==19.1.0
 pytz==2020.1
